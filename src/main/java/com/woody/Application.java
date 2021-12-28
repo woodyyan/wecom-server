@@ -72,13 +72,14 @@ public class Application {
             String title = jsonObject.getString("title");
             String urlString = jsonObject.getString("url");
             System.out.println("title:" + title + ";urlString:" + urlString);
-            stringBuilder.append(String.format("标题：%s, 链接：%s", title, urlString));
+            stringBuilder.append(String.format("标题：**%s**, 链接：[%s](%s)", title, urlString, urlString));
             stringBuilder.append(System.lineSeparator());
         }
         System.out.println("查询结果：");
         System.out.println(stringBuilder);
 
         JSONObject result = new JSONObject();
+        result.put("msgType", "markdown");
         result.put("msgContent", stringBuilder.toString());
         System.out.println(result);
         return result.toString();
