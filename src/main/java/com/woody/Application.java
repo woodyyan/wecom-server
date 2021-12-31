@@ -19,25 +19,23 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.woody.Configs.AUTHORIZATION;
 
 public class Application {
 
     private static final String SCF_CN = "云函数";
     private static final String SCF_EN = "SCF";
     private static final String TRELLO = "TRELLO";
+    public static final String EM_BEGIN = "<em>";
+    public static final String EM_END = "</em>";
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
-//        new Application().searchCloudDoc("scf你好");
-        new Application().callQingYunKe("你好");
-        new Application().searchTrelloCard("ETL");
-//        String authorization = "OAuth oauth_consumer_key=\"80d5b71c240535641e590ef9fb69d535\", oauth_token=\"dd9eefa5dd5ceb827f1adc1328eb4d3302b6db73184fde6a600be8b77437437c\"";
-
-//        new Application().getWithHttpClient("https://api.trello.com/1/search?idBoards=61a9f4eff4d82d5399d26e70&query=ETL", authorization);
+    public static void main(String[] args) throws IOException {
+        new Application().searchCloudDoc("收费");
+//        new Application().callQingYunKe("你好");
+//        new Application().searchTrelloCard("ETL");
     }
 
     public String mainHandler(APIGatewayProxyRequestEvent req) throws IOException {
@@ -53,7 +51,6 @@ public class Application {
         System.out.println(msgContent);
 
         System.out.println("send request");
-        //等待 spring 业务返回处理结构 -> api geteway response。
         APIGatewayProxyResponseEvent resp = new APIGatewayProxyResponseEvent();
         resp.setStatusCode(200);
         Map<String, Object> headers = new HashMap<>();
@@ -89,8 +86,10 @@ public class Application {
             JSONObject jsonObject = jsonArray.getJSONObject(i);
             String title = jsonObject.getString("title");
             String urlString = jsonObject.getString("url");
+            String content = jsonObject.getString("content");
             System.out.println("title:" + title + ";urlString:" + urlString);
-            stringBuilder.append(String.format("标题：**%s**, 链接：[%s](%s)", title, urlString, urlString));
+            System.out.println(content);
+            stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, replaceFont(content)));
             stringBuilder.append(System.lineSeparator());
         }
         System.out.println("查询结果：");
@@ -103,9 +102,22 @@ public class Application {
         return result.toString();
     }
 
+    private String replaceFont(String content) {
+        int begin = content.indexOf(EM_BEGIN);
+        int end = content.indexOf(EM_END);
+        String emString = content.substring(begin, end + EM_END.length());
+        String fontString = emString.replace(EM_BEGIN, "<font color=red>");
+        fontString = fontString.replace(EM_END, "</font>");
+        String replace = content.replace(emString, fontString);
+        if (replace.contains("。")) {
+            int index = replace.indexOf("。");
+            replace = replace.substring(0, index + 1);
+        }
+        return replace;
+    }
+
     public String searchTrelloCard(String query) throws IOException {
-        String authorization = "OAuth oauth_consumer_key=\"80d5b71c240535641e590ef9fb69d535\", oauth_token=\"dd9eefa5dd5ceb827f1adc1328eb4d3302b6db73184fde6a600be8b77437437c\"";
-        JSONObject jsonObject = getWithHttpClient(String.format("https://api.trello.com/1/search?idBoards=61a9f4eff4d82d5399d26e70&query=%s", URLEncoder.encode(query, "UTF-8")), authorization);
+        JSONObject jsonObject = getWithHttpClient(String.format("https://api.trello.com/1/search?idBoards=61a9f4eff4d82d5399d26e70&query=%s", URLEncoder.encode(query, "UTF-8")), AUTHORIZATION);
         JSONObject result = new JSONObject();
         result.put("msgType", "markdown");
         if (jsonObject != null) {
