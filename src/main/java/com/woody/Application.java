@@ -2,11 +2,13 @@ package com.woody;
 
 import com.qcloud.services.scf.runtime.events.APIGatewayProxyRequestEvent;
 import com.qcloud.services.scf.runtime.events.APIGatewayProxyResponseEvent;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import com.tencentcloudapi.common.Credential;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
+import com.tencentcloudapi.common.profile.ClientProfile;
+import com.tencentcloudapi.common.profile.HttpProfile;
+import com.tencentcloudapi.nlp.v20190408.NlpClient;
+import com.tencentcloudapi.nlp.v20190408.models.ChatBotRequest;
+import com.tencentcloudapi.nlp.v20190408.models.ChatBotResponse;
 import org.apache.logging.log4j.util.Strings;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,7 +16,6 @@ import org.json.JSONObject;
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -22,7 +23,8 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.woody.Configs.AUTHORIZATION;
+import static com.woody.Configs.SECRET_ID;
+import static com.woody.Configs.SECRET_KEY;
 
 public class Application {
 
@@ -33,9 +35,10 @@ public class Application {
     public static final String EM_END = "</em>";
 
     public static void main(String[] args) throws IOException {
-        new Application().searchCloudDoc("收费");
+//        new Application().searchCloudDoc("收费");
 //        new Application().callQingYunKe("你好");
 //        new Application().searchTrelloCard("ETL");
+        System.out.println(new Application().chatBot("你好"));
     }
 
     public String mainHandler(APIGatewayProxyRequestEvent req) throws IOException {
@@ -59,10 +62,8 @@ public class Application {
         if (msgContent.toUpperCase().startsWith(SCF_EN) || msgContent.startsWith(SCF_CN)) {
             int beginIndex = msgContent.startsWith(SCF_CN) ? SCF_CN.length() : SCF_EN.length();
             resp.setBody(searchCloudDoc(msgContent.substring(beginIndex)));
-        } else if (msgContent.toUpperCase().startsWith(TRELLO)) {
-            resp.setBody(searchTrelloCard(msgContent.substring(TRELLO.length())));
         } else {
-            resp.setBody(callQingYunKe(msgContent));
+            resp.setBody(chatBot(msgContent));
         }
         System.out.println(resp.getBody());
         return resp.toString();
@@ -116,45 +117,34 @@ public class Application {
         return replace;
     }
 
-    public String searchTrelloCard(String query) throws IOException {
-        JSONObject jsonObject = getWithHttpClient(String.format("https://api.trello.com/1/search?idBoards=61a9f4eff4d82d5399d26e70&query=%s", URLEncoder.encode(query, "UTF-8")), AUTHORIZATION);
-        JSONObject result = new JSONObject();
-        result.put("msgType", "markdown");
-        if (jsonObject != null) {
-            JSONArray cards = jsonObject.getJSONArray("cards");
-            StringBuilder stringBuilder = new StringBuilder();
-            for (int i = 0; i < cards.length(); i++) {
-                JSONObject card = cards.getJSONObject(i);
-                String name = card.getString("name");
-                String shortUrl = card.getString("shortUrl");
-                stringBuilder.append(String.format("- [%s](%s)", name, shortUrl));
-                stringBuilder.append(System.lineSeparator());
-            }
-            System.out.println("查询Trello结果：");
-            System.out.println(stringBuilder);
-            result.put("msgContent", stringBuilder.toString());
+    public String chatBot(String message) {
+        try {
+            // 实例化一个认证对象，入参需要传入腾讯云账户secretId，secretKey,此处还需注意密钥对的保密
+            // 密钥可前往https://console.cloud.tencent.com/cam/capi网站进行获取
+            Credential cred = new Credential(SECRET_ID, SECRET_KEY);
+            // 实例化一个http选项，可选的，没有特殊需求可以跳过
+            HttpProfile httpProfile = new HttpProfile();
+            httpProfile.setEndpoint("nlp.tencentcloudapi.com");
+            // 实例化一个client选项，可选的，没有特殊需求可以跳过
+            ClientProfile clientProfile = new ClientProfile();
+            clientProfile.setHttpProfile(httpProfile);
+            // 实例化要请求产品的client对象,clientProfile是可选的
+            NlpClient client = new NlpClient(cred, "ap-guangzhou", clientProfile);
+            // 实例化一个请求对象,每个接口都会对应一个request对象
+            ChatBotRequest req = new ChatBotRequest();
+            req.setQuery(message);
+            // 返回的resp是一个ChatBotResponse的实例，与请求对象对应
+            ChatBotResponse resp = client.ChatBot(req);
+            // 输出json格式的字符串回包
+            JSONObject responseJson = new JSONObject(ChatBotResponse.toJsonString(resp));
+            System.out.println(responseJson);
+            JSONObject result = new JSONObject();
+            result.put("msgContent", responseJson.getString("Reply"));
+            return result.toString();
+        } catch (TencentCloudSDKException e) {
+            System.out.println(e.getMessage());
         }
-
-        System.out.println(result);
-        return result.toString();
-    }
-
-    public JSONObject getWithHttpClient(String url, String authorization) throws IOException {
-        // trust all certificates
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpGet httpget = new HttpGet(url);
-        httpget.setHeader("Authorization", authorization);
-        try (CloseableHttpResponse response = httpclient.execute(httpget)) {
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                try (InputStream inStream = entity.getContent()) {
-                    BufferedReader in = new BufferedReader(
-                            new InputStreamReader(inStream));
-                    return getJsonObject(in);
-                }
-            }
-        }
-        return null;
+        return "";
     }
 
     private JSONObject getJsonObject(BufferedReader in) throws IOException {
