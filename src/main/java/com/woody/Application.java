@@ -35,10 +35,10 @@ public class Application {
     public static final String EM_END = "</em>";
 
     public static void main(String[] args) throws IOException {
-//        new Application().searchCloudDoc("收费");
+        new Application().searchCloudDoc("收费");
 //        new Application().callQingYunKe("你好");
 //        new Application().searchTrelloCard("ETL");
-        System.out.println(new Application().chatBot("你好"));
+//        System.out.println(new Application().chatBot("你好"));
     }
 
     public String mainHandler(APIGatewayProxyRequestEvent req) throws IOException {
@@ -106,6 +106,9 @@ public class Application {
     private String replaceFont(String content) {
         int begin = content.indexOf(EM_BEGIN);
         int end = content.indexOf(EM_END);
+        if (begin < 0 || end < 0) {
+            return content;
+        }
         String emString = content.substring(begin, end + EM_END.length());
         String fontString = emString.replace(EM_BEGIN, "<font color=red>");
         fontString = fontString.replace(EM_END, "</font>");
