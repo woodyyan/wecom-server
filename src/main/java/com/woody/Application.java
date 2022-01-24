@@ -90,7 +90,7 @@ public class Application {
             String content = jsonObject.getString("content");
             System.out.println("title:" + title + ";urlString:" + urlString);
             System.out.println(content);
-            stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, replaceFont(content)));
+            stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, replaceAllFont(content)));
             stringBuilder.append(System.lineSeparator());
         }
         System.out.println("查询结果：");
@@ -101,6 +101,15 @@ public class Application {
         result.put("msgContent", stringBuilder.toString());
         System.out.println(result);
         return result.toString();
+    }
+
+    private String replaceAllFont(String content) {
+        if (content.contains(EM_BEGIN)) {
+            content = replaceFont(content);
+            return replaceAllFont(content);
+        } else {
+            return content;
+        }
     }
 
     private String replaceFont(String content) {
