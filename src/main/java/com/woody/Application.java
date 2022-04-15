@@ -35,10 +35,10 @@ public class Application {
     public static final String EM_END = "</em>";
 
     public static void main(String[] args) throws IOException {
-        new Application().searchCloudDoc("收费");
+//        new Application().searchCloudDoc("收费");
 //        new Application().callQingYunKe("你好");
 //        new Application().searchTrelloCard("ETL");
-//        System.out.println(new Application().chatBot("你好"));
+        System.out.println(new Application().chatBot("你好"));
     }
 
     public String mainHandler(APIGatewayProxyRequestEvent req) throws IOException {
