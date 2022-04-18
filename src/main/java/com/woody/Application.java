@@ -35,7 +35,7 @@ public class Application {
     public static final String EM_END = "</em>";
 
     public static void main(String[] args) throws IOException {
-        new Application().searchCloudDoc("429");
+        new Application().searchCloudDoc(" 429 ");
 //        new Application().callQingYunKe("你好");
 //        new Application().searchTrelloCard("ETL");
 //        System.out.println(new Application().chatBot("你好"));
@@ -78,6 +78,7 @@ public class Application {
     }
 
     public String searchCloudDoc(String query) throws IOException {
+        query = query.trim();
         String url = "https://cloud.tencent.com/search/ajax/searchdoc?keyword=" + URLEncoder.encode(query, "UTF-8") + "&category=%E4%BA%91%E5%87%BD%E6%95%B0&page=1&pagesize=10";
 
         JSONObject json = get(url, null);
@@ -89,8 +90,8 @@ public class Application {
             String urlString = jsonObject.getString("url");
             String content = jsonObject.getString("content");
             System.out.println("title:" + title + ";urlString:" + urlString);
-            System.out.println(content);
             String formatContent = replaceAllFont(content);
+            System.out.println(formatContent);
             if (formatContent.contains(query)) {
                 stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, formatContent));
                 stringBuilder.append(System.lineSeparator());
