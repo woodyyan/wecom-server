@@ -9,7 +9,6 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.nlp.v20190408.NlpClient;
 import com.tencentcloudapi.nlp.v20190408.models.ChatBotRequest;
 import com.tencentcloudapi.nlp.v20190408.models.ChatBotResponse;
-import org.apache.logging.log4j.util.Strings;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -25,6 +24,7 @@ import java.util.Map;
 
 import static com.woody.Configs.SECRET_ID;
 import static com.woody.Configs.SECRET_KEY;
+import static org.apache.logging.log4j.util.Strings.isNotEmpty;
 
 public class Application {
 
@@ -35,10 +35,10 @@ public class Application {
     public static final String EM_END = "</em>";
 
     public static void main(String[] args) throws IOException {
-//        new Application().searchCloudDoc("收费");
+        new Application().searchCloudDoc("429");
 //        new Application().callQingYunKe("你好");
 //        new Application().searchTrelloCard("ETL");
-        System.out.println(new Application().chatBot("你好"));
+//        System.out.println(new Application().chatBot("你好"));
     }
 
     public String mainHandler(APIGatewayProxyRequestEvent req) throws IOException {
@@ -90,8 +90,11 @@ public class Application {
             String content = jsonObject.getString("content");
             System.out.println("title:" + title + ";urlString:" + urlString);
             System.out.println(content);
-            stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, replaceAllFont(content)));
-            stringBuilder.append(System.lineSeparator());
+            String formatContent = replaceAllFont(content);
+            if (formatContent.contains(query)) {
+                stringBuilder.append(String.format("[%s](%s) \n > %s \n", title, urlString, formatContent));
+                stringBuilder.append(System.lineSeparator());
+            }
         }
         System.out.println("查询结果：");
         System.out.println(stringBuilder);
@@ -178,7 +181,7 @@ public class Application {
         HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
 
         con.setRequestMethod("GET");
-        if (Strings.isNotEmpty(authorization)) {
+        if (isNotEmpty(authorization)) {
             con.setRequestProperty("Authorization", authorization);
         }
 
